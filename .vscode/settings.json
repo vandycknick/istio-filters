@@ -1,0 +1,8 @@
+{
+        "rust-analyzer.linkedProjects": [
+            "/Users/nickvd/Projects/istio-filters/filters/jwt-claims-header/Cargo.toml",
+            "/Users/nickvd/Projects/istio-filters/filters/jwt-claims-header/wasm/module/Cargo.toml",
+            "/Users/nickvd/Projects/istio-filters/filters/jwt-from-cookie/Cargo.toml",
+            "/Users/nickvd/Projects/istio-filters/filters/jwt-from-cookie/wasm/module/Cargo.toml"
+        ]
+}

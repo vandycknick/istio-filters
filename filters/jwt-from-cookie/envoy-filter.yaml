@@ -1,0 +1,43 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: httpbin-jwt-from-cookie
+  namespace: filters
+spec:
+  workloadSelector:
+    labels:
+      app: httpbin
+  configPatches:
+    # The first patch adds the lua filter to the listener/http connection manager
+    - applyTo: HTTP_FILTER
+      match:
+        context: SIDECAR_INBOUND
+        listener:
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+              subFilter:
+                name: envoy.filters.http.jwt_authn
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: jwt-from-cookie
+          typed_config:
+            "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+            type_url: type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+            value:
+              config:
+                vm_config:
+                  runtime: envoy.wasm.runtime.v8
+                  vm_id: jwt-from-cookie-0.1
+                  code:
+                    local:
+                      filename: /var/local/wasm/jwt_from_cookie_filter.wasm
+                configuration:
+                  "@type": type.googleapis.com/google.protobuf.StringValue
+                  value: |
+                    {
+                      "cookie": "_dct",
+                      "header": "X-Authorization",
+                      "prefix"; "Bearer "
+                    }

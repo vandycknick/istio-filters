@@ -1,0 +1,17 @@
+apiVersion: security.istio.io/v1beta1
+kind: RequestAuthentication
+metadata:
+  name: "jwt-httpbin"
+  namespace: filters
+spec:
+  selector:
+    matchLabels:
+      app: httpbin
+  jwtRules:
+    - issuer: "https://www.datacamp.com"
+      jwks: '{ "keys":[{ "kty": "RSA", "n": "mdvyF8DqU-oBKOzQL5mEFzXj2A8es5h5Ig_KUV5OxGQdKwQLHpPJcmEywQK9uNJjXQPYmOScRgRW9P-hvqbxRVFcsM-klwaPizt5yiwi11cuzY6eBY4Fx-A1I3VjyHQafXr49Uqaa5EB5_fM4yWly_69IN-abH8K0-M3Xvi26aDXSIARaLBDRS7TBsxDdR-S6rG4yw4vhK4Yy2bveulbohPRg3teEZX2Z-4E7pcarabI46HV3-hiDlLfbmwr4KggqMyeU-c3wZxjvcmW2R0iRTH-jbd3jZQxY7rAtuV0QX2-STj87sT2_T_w011nicw5laGArRUjMbaBDFdZtCdWvQ", "e": "AQAB", "alg": "RS256" } ]}'
+      outputPayloadToHeader: "X-Jwt"
+      forwardOriginalToken: true
+      fromHeaders:
+        - name: X-Authorization
+          prefix: "Bearer "
