@@ -48,8 +48,8 @@ spec:
   template:
     metadata:
       annotations:
-        sidecar.istio.io/userVolume: '[{"name":"jwt-claims-header-filter","configMap":{"name":"jwt-claims-header-filter"}}]'
-        sidecar.istio.io/userVolumeMount: '[{"mountPath":"/var/local/wasm","name":"jwt-claims-header-filter"}]'
+        sidecar.istio.io/userVolume: '[{"name":"wasm-modules","configMap":{"name":"wasm-modules"}}]'
+        sidecar.istio.io/userVolumeMount: '[{"mountPath":"/var/local/wasm","name":"wasm-modules"}]'
       labels:
         app: httpbin
         version: v1
