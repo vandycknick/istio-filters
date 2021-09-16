@@ -28,7 +28,7 @@ impl<'a> JwtClaimsHeaderHttpFilterFactory<'a> {
 
     /// Creates a new factory bound to the actual `Envoy` ABI.
     pub fn default() -> Result<Self> {
-        Self::new(Clock::default(), HttpClient::default())
+        Self::new(<dyn Clock>::default(), <dyn HttpClient>::default())
     }
 }
 

@@ -1,0 +1,138 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: EnvoyFilter
+metadata:
+  name: gw-session-query-rewrite
+  namespace: istio-system
+spec:
+  workloadSelector:
+    labels:
+      app: istio-ingressgateway
+  configPatches:
+    # The first patch adds the lua filter to the listener/http connection manager
+    - applyTo: HTTP_FILTER
+      match:
+        context: GATEWAY
+        listener:
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+              subFilter:
+                name: envoy.filters.http.router
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: session-query-rewrite
+          typed_config:
+            "@type": type.googleapis.com/udpa.type.v1.TypedStruct
+            type_url: type.googleapis.com/envoy.extensions.filters.http.wasm.v3.Wasm
+            value:
+              config:
+                vm_config:
+                  runtime: envoy.wasm.runtime.v8
+                  vm_id: session-query-rewrite-0.1
+                  code:
+                    local:
+                      filename: /var/lib/wasm/session_query_rewrite_module.wasm
+                configuration:
+                  "@type": type.googleapis.com/google.protobuf.StringValue
+                  value: |
+                    {
+                      "host_rewrite_header": "X-RewriteSessionsHost"
+                    }
+
+    - applyTo: HTTP_ROUTE
+      match:
+        context: GATEWAY
+        routeConfiguration:
+          vhost:
+            name: "httpbin.mux.local:80"
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          match:
+            prefix: "/force-host-rewrite"
+          route:
+            prefix_rewrite: "/"
+            cluster: dynamic_forward_proxy_cluster
+          typed_per_filter_config:
+            envoy.filters.http.dynamic_forward_proxy:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.dynamic_forward_proxy.v3.PerRouteConfig
+              host_rewrite_header: X-RewriteSessionsHost
+
+    - applyTo: HTTP_ROUTE
+      match:
+        context: GATEWAY
+        routeConfiguration:
+          vhost:
+            name: "httpbin.mux.local:80"
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          match:
+            prefix: "/read"
+          route:
+            prefix_rewrite: "/"
+            cluster: dynamic_forward_proxy_cluster
+          typed_per_filter_config:
+            envoy.filters.http.dynamic_forward_proxy:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.dynamic_forward_proxy.v3.PerRouteConfig
+              host_rewrite_header: X-InternalSessionHost
+
+    - applyTo: HTTP_FILTER
+      match:
+        context: GATEWAY
+        listener:
+          # portNumber: 80
+          filterChain:
+            filter:
+              name: envoy.filters.network.http_connection_manager
+              subFilter:
+                name: envoy.filters.http.router
+      patch:
+        operation: INSERT_BEFORE
+        value:
+          name: envoy.filters.http.dynamic_forward_proxy
+          typed_config:
+            "@type": type.googleapis.com/envoy.extensions.filters.http.dynamic_forward_proxy.v3.FilterConfig
+            dns_cache_config:
+              name: dynamic_forward_proxy_cache_config
+              dns_lookup_family: V4_ONLY
+              dns_resolution_config:
+                resolvers:
+                  - socket_address:
+                      address: "8.8.8.8"
+                      port_value: 53
+                dns_resolver_options:
+                  use_tcp_for_dns_lookups: true
+                  no_default_search_domain: true
+
+    - applyTo: CLUSTER
+      match:
+        context: GATEWAY
+      patch:
+        operation: ADD
+        value: # cluster specification
+          name: dynamic_forward_proxy_cluster
+          lb_policy: CLUSTER_PROVIDED
+          cluster_type:
+            name: envoy.clusters.dynamic_forward_proxy
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.clusters.dynamic_forward_proxy.v3.ClusterConfig
+              dns_cache_config:
+                name: dynamic_forward_proxy_cache_config
+                dns_lookup_family: V4_ONLY
+                dns_resolution_config:
+                  resolvers:
+                    - socket_address:
+                        address: "8.8.8.8"
+                        port_value: 53
+                  dns_resolver_options:
+                    use_tcp_for_dns_lookups: true
+                    no_default_search_domain: true
+          transport_socket:
+            name: envoy.transport_sockets.tls
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+              common_tls_context:
+                validation_context:
+                  trusted_ca: { filename: /etc/ssl/certs/ca-certificates.crt }

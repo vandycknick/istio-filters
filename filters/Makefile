@@ -1,5 +1,10 @@
 TARGET=""
 SERVICE=httpbin
+NAMESPACE=filters
+
+.PHONY: setup
+setup:
+	rustup target add wasm32-unknown-unknown
 
 .PHONY: build
 build:
@@ -18,11 +23,11 @@ build.wasm:
 
 .PHONY: deploy
 deploy:
-	kubectl delete -n filters configmap wasm-modules 2&>/dev/null || exit 0
-	kubectl create -n filters configmap wasm-modules --from-file=./bin/
+	kubectl delete -n ${NAMESPACE} configmap wasm-modules 2>/dev/null || exit 0
+	kubectl create -n ${NAMESPACE} configmap wasm-modules --from-file=./bin/
 
 .PHONY: restart
 restart:
-	kubectl rollout restart -n filters deployment ${SERVICE}
+	kubectl rollout restart -n ${NAMESPACE} deployment ${SERVICE}
 	sleep 5
-	istioctl pc -n filters log $$(kubectl get -n filters pods -l app=${SERVICE} -o jsonpath={.items..metadata.name}) --level wasm:info
+	istioctl pc -n ${NAMESPACE} log $$(kubectl get -n ${NAMESPACE} pods -l app=${SERVICE} -o jsonpath={.items..metadata.name}) --level wasm:info

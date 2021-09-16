@@ -1,13 +1,11 @@
-use std::option::Option::None;
 use std::rc::Rc;
-use std::time::Duration;
 
 use chrono::offset::Local;
 use chrono::DateTime;
 
 use envoy::extension::filter::http;
 use envoy::extension::{HttpFilter, InstanceId, Result};
-use envoy::host::{log, Clock, HttpClient, HttpClientRequestHandle, HttpClientResponseOps};
+use envoy::host::{log, Clock};
 
 use super::config::SessionQueryRewriteConfig;
 
@@ -15,25 +13,18 @@ pub struct SessionQueryRewriteHttpFilter<'a> {
     config: Rc<SessionQueryRewriteConfig>,
     instance_id: InstanceId,
     clock: &'a dyn Clock,
-    http_client: &'a dyn HttpClient,
-    active_request: Option<HttpClientRequestHandle>,
 }
 
 impl<'a> SessionQueryRewriteHttpFilter<'a> {
-    /// Creates a new instance of Sample HTTP Filter.
     pub fn new(
         config: Rc<SessionQueryRewriteConfig>,
         instance_id: InstanceId,
         clock: &'a dyn Clock,
-        http_client: &'a dyn HttpClient,
     ) -> Self {
-        // Inject dependencies on Envoy host APIs
         SessionQueryRewriteHttpFilter {
             config,
             instance_id,
             clock,
-            http_client,
-            active_request: None,
         }
     }
 }
@@ -66,24 +57,13 @@ impl<'a> HttpFilter for SessionQueryRewriteHttpFilter<'a> {
             }
         }
 
-        filter_ops.request_header("X-InternalSessionHost")?;
+        filter_ops
+            .remove_request_header(self.config.host_rewrite_header.as_str())
+            .unwrap_or_default();
 
-        match filter_ops.request_headers() {
-            Ok(headers) => {
-                log::info!("Logging available headers:");
-                for (name, value) in headers {
-                    log::info!("Header: {}={}", name, value);
-                }
-                log::info!("============");
-            }
-            Err(err) => {
-                log::error!("something gone wrong {}", err);
-            }
-        }
-
-        filter_ops.set_request_header("X-InternalSessionHost", "httpbin.org")?;
-
-        // filter_ops.set_request_header(":path", "/headers");
+        filter_ops
+            .set_request_header(self.config.host_rewrite_header.as_str(), "httpbin.org")
+            .unwrap_or_default();
 
         match filter_ops.request_headers() {
             Ok(headers) => {
@@ -98,59 +78,25 @@ impl<'a> HttpFilter for SessionQueryRewriteHttpFilter<'a> {
             }
         }
 
-        // match self.http_client.send_request(
-        //     "httpbin.test.svc.cluster.local",
-        //     &[
-        //         (":method", "GET"),
-        //         (":path", "/headers"),
-        //         (":authority", "httpbin.test.svc.cluster.local"),
-        //     ],
-        //     None,
-        //     None,
-        //     Duration::from_secs(3),
-        // ) {
-        //     Ok(active_request) => {
-        //         self.active_request = Some(active_request);
-
-        //         if let Some(request) = self.active_request {
-        //             log::info!(
-        //                 "#{} sent authorization request: @{}",
-        //                 self.instance_id,
-        //                 request,
-        //             )
-        //         }
-        //     }
-        //     Err(err) => log::info!("Some error: {}", err),
-        // }
-
         Ok(http::FilterHeadersStatus::Continue)
     }
 
-    fn on_http_call_response(
+    fn on_response_headers(
         &mut self,
-        request: HttpClientRequestHandle,
-        num_headers: usize,
-        _body_size: usize,
-        _num_trailers: usize,
-        filter_ops: &dyn http::Ops,
-        http_client_ops: &dyn HttpClientResponseOps,
-    ) -> Result<()> {
-        log::info!(
-            "#{} received response on authorization request: @{}",
-            self.instance_id,
-            request
-        );
-        assert!(self.active_request == Some(request));
-        self.active_request = None;
+        _num_headers: usize,
+        _end_of_stream: bool,
+        ops: &dyn http::ResponseHeadersOps,
+    ) -> Result<http::FilterHeadersStatus> {
+        let response_header = ops
+            .response_header("status")
+            .unwrap_or_default()
+            .map(|s| s.to_string())
+            .unwrap_or_default();
 
-        log::info!("     headers[count={}]:", num_headers);
-        let response_headers = http_client_ops.http_call_response_headers()?;
-        for (name, value) in &response_headers {
-            log::info!("       {}: {}", name, value);
+        if !response_header.is_empty() && response_header == "503" {
+            ops.set_response_header("status", "403").unwrap_or_default();
         }
 
-        log::info!("#{} resuming http exchange processing", self.instance_id);
-        filter_ops.resume_request()?;
-        Ok(())
+        Ok(http::FilterHeadersStatus::Continue)
     }
 }

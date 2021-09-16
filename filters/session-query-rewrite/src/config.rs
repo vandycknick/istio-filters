@@ -7,11 +7,7 @@ use envoy::extension;
 #[derive(Deserialize, Debug)]
 pub struct SessionQueryRewriteConfig {
     #[serde(default)]
-    pub cookie: String,
-    #[serde(default)]
-    pub header: String,
-    #[serde(default)]
-    pub prefix: String,
+    pub host_rewrite_header: String,
 }
 
 impl TryFrom<&[u8]> for SessionQueryRewriteConfig {
@@ -27,9 +23,7 @@ impl Default for SessionQueryRewriteConfig {
     /// Creates the default configuration.
     fn default() -> Self {
         SessionQueryRewriteConfig {
-            cookie: String::default(),
-            header: String::default(),
-            prefix: String::default(),
+            host_rewrite_header: String::default(),
         }
     }
 }

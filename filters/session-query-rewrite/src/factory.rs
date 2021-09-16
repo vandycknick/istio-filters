@@ -2,7 +2,7 @@ use std::convert::TryFrom;
 use std::rc::Rc;
 
 use envoy::extension::{factory, ConfigStatus, ExtensionFactory, InstanceId, Result};
-use envoy::host::{ByteString, Clock, HttpClient};
+use envoy::host::{ByteString, Clock};
 
 use super::config::SessionQueryRewriteConfig;
 use super::filter::SessionQueryRewriteHttpFilter;
@@ -12,23 +12,21 @@ use super::filter::SessionQueryRewriteHttpFilter;
 pub struct SessionQueryRewriteHttpFilterFactory<'a> {
     config: Rc<SessionQueryRewriteConfig>,
     clock: &'a dyn Clock,
-    http_client: &'a dyn HttpClient,
 }
 
 impl<'a> SessionQueryRewriteHttpFilterFactory<'a> {
     /// Creates a new factory.
-    pub fn new(clock: &'a dyn Clock, http_client: &'a dyn HttpClient) -> Result<Self> {
+    pub fn new(clock: &'a dyn Clock) -> Result<Self> {
         // Inject dependencies on Envoy host APIs
         Ok(SessionQueryRewriteHttpFilterFactory {
             config: Rc::new(SessionQueryRewriteConfig::default()),
             clock,
-            http_client,
         })
     }
 
     /// Creates a new factory bound to the actual `Envoy` ABI.
     pub fn default() -> Result<Self> {
-        Self::new(Clock::default(), HttpClient::default())
+        Self::new(<dyn Clock>::default())
     }
 }
 
@@ -65,7 +63,6 @@ impl<'a> ExtensionFactory for SessionQueryRewriteHttpFilterFactory<'a> {
             Rc::clone(&self.config),
             instance_id,
             self.clock,
-            self.http_client,
         ))
     }
 }
