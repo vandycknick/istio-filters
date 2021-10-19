@@ -1,10 +1,10 @@
 {
         "rust-analyzer.linkedProjects": [
-            "/home/nickvd/Projects/istio-filters/filters/jwt-claims-header/Cargo.toml",
-            "/home/nickvd/Projects/istio-filters/filters/jwt-claims-header/wasm/module/Cargo.toml",
-            "/home/nickvd/Projects/istio-filters/filters/jwt-from-cookie/Cargo.toml",
-            "/home/nickvd/Projects/istio-filters/filters/jwt-from-cookie/wasm/module/Cargo.toml",
-            "/home/nickvd/Projects/istio-filters/filters/session-query-rewrite/Cargo.toml",
-            "/home/nickvd/Projects/istio-filters/filters/session-query-rewrite/wasm/module/Cargo.toml"
+            "filters/jwt-claims-header/Cargo.toml",
+            "filters/jwt-claims-header/wasm/module/Cargo.toml",
+            "filters/jwt-from-cookie/Cargo.toml",
+            "filters/jwt-from-cookie/wasm/module/Cargo.toml",
+            "filters/session-query-rewrite/Cargo.toml",
+            "filters/session-query-rewrite/wasm/module/Cargo.toml"
         ]
 }

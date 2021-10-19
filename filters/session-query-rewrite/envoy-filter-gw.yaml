@@ -8,7 +8,7 @@ spec:
     labels:
       app: istio-ingressgateway
   configPatches:
-    # The first patch adds the lua filter to the listener/http connection manager
+    # Add rust filter to the http connection maanger
     - applyTo: HTTP_FILTER
       match:
         context: GATEWAY
