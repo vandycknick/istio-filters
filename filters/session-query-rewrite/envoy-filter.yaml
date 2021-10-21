@@ -32,14 +32,12 @@ spec:
                   vm_id: session-query-rewrite-0.1
                   code:
                     local:
-                      filename: /var/local/wasm/session_query_rewrite_module.wasm
+                      filename: /var/lib/wasm/session_query_rewrite_module.wasm
                 configuration:
                   "@type": type.googleapis.com/google.protobuf.StringValue
                   value: |
                     {
-                      "cookie": "_dct",
-                      "header": "X-Authorization",
-                      "prefix": "Bearer "
+                      "host_rewrite_header": "X-RewriteSessionsHost"
                     }
     - applyTo: HTTP_ROUTE
       match:
@@ -57,7 +55,7 @@ spec:
           typed_per_filter_config:
             envoy.filters.http.dynamic_forward_proxy:
               "@type": type.googleapis.com/envoy.extensions.filters.http.dynamic_forward_proxy.v3.PerRouteConfig
-              host_rewrite_header: X-InternalSessionHost
+              host_rewrite_header: X-RewriteSessionsHost
 
     - applyTo: HTTP_FILTER
       match:

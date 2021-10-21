@@ -8,6 +8,10 @@ use envoy::extension;
 pub struct SessionQueryRewriteConfig {
     #[serde(default)]
     pub host_rewrite_header: String,
+    #[serde(default)]
+    pub routes: Vec<String>,
+    #[serde(default)]
+    pub vhost: String,
 }
 
 impl TryFrom<&[u8]> for SessionQueryRewriteConfig {
@@ -24,6 +28,8 @@ impl Default for SessionQueryRewriteConfig {
     fn default() -> Self {
         SessionQueryRewriteConfig {
             host_rewrite_header: String::default(),
+            routes: Vec::new(),
+            vhost: String::default(),
         }
     }
 }

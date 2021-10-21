@@ -1,6 +1,8 @@
 TARGET=""
-SERVICE=httpbin
-NAMESPACE=filters
+# SERVICE=httpbin
+# NAMESPACE=filters
+SERVICE=istio-ingressgateway
+NAMESPACE=istio-system
 
 .PHONY: setup
 setup:
@@ -29,5 +31,9 @@ deploy:
 .PHONY: restart
 restart:
 	kubectl rollout restart -n ${NAMESPACE} deployment ${SERVICE}
-	sleep 5
+	kubectl rollout status -n ${NAMESPACE} deployment ${SERVICE}
+	$(MAKE) restart-istio
+
+.PHONY: restart-istio
+restart-istio:
 	istioctl pc -n ${NAMESPACE} log $$(kubectl get -n ${NAMESPACE} pods -l app=${SERVICE} -o jsonpath={.items..metadata.name}) --level wasm:info

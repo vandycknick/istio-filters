@@ -1,4 +1,9 @@
 use cookie::Cookie;
+use http::Uri;
+
+mod querystring;
+
+use querystring::querify;
 
 fn main() {
     println!("hello world");
@@ -27,6 +32,25 @@ fn main() {
             println!("Found dct Cookie {}={}", cookie.name(), cookie.value());
         } else {
             println!("Not the dct cookie {}={}", cookie.name(), cookie.value());
+        }
+    }
+
+    let uri = "/hello?sid=123".parse::<Uri>().unwrap_or_default();
+
+    let sid = uri
+        .query()
+        .map(|query| querify(query))
+        .unwrap_or_default()
+        .into_iter()
+        .filter(|part| part.0 == "sid")
+        .nth(0);
+
+    match sid {
+        Some(s) => {
+            println!("Found a query {}:{}", s.0, s.1);
+        }
+        None => {
+            println!("No query in this shit");
         }
     }
 }

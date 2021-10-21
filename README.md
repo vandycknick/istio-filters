@@ -20,7 +20,7 @@ Install istio:
 istioctl install --set profile=demo -y
 ```
 
-Check if the ingress and egress gateways start up correctly. I often seem to have issues in a nwe minikube cluster with dns. If you see cert errors this is most likely due to an error earlier where the gateways can't resolve the istiod DNS.
+Check if the ingress and egress gateways start up correctly. I often seem to have issues in a new minikube cluster with dns. If you see cert errors this is most likely due to an error earlier where the gateways can't resolve the istiod DNS. (restarting coredns and then gateways fixes thsi)
 
 ## Installing addons
 
@@ -34,6 +34,12 @@ Expose services:
 
 ```sh
 kubectl apply -f services/kiali-gateway.yaml
+```
+
+Install metrics-server
+
+```sh
+minikube addons enable metrics-server
 ```
 
 ## Expose your loadbalancer with minikube

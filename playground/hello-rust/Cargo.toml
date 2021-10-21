@@ -7,3 +7,4 @@ edition = "2018"
 
 [dependencies]
 cookie = { version = "0.15", features =  ["percent-encode"] }
+http = { version = "0.2" }

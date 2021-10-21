@@ -49,7 +49,7 @@ spec:
     metadata:
       annotations:
         sidecar.istio.io/userVolume: '[{"name":"wasm-modules","configMap":{"name":"wasm-modules"}}]'
-        sidecar.istio.io/userVolumeMount: '[{"mountPath":"/var/local/wasm","name":"wasm-modules"}]'
+        sidecar.istio.io/userVolumeMount: '[{"mountPath":"/var/lib/wasm","name":"wasm-modules"}]'
       labels:
         app: httpbin
         version: v1

@@ -5,6 +5,7 @@
             "filters/jwt-from-cookie/Cargo.toml",
             "filters/jwt-from-cookie/wasm/module/Cargo.toml",
             "filters/session-query-rewrite/Cargo.toml",
-            "filters/session-query-rewrite/wasm/module/Cargo.toml"
+            "filters/session-query-rewrite/wasm/module/Cargo.toml",
+            "playground/hello-rust/Cargo.toml"
         ]
 }

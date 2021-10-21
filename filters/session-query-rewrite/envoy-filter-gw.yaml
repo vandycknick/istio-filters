@@ -8,7 +8,7 @@ spec:
     labels:
       app: istio-ingressgateway
   configPatches:
-    # Add rust filter to the http connection maanger
+    # Add rust filter to the http connection manager
     - applyTo: HTTP_FILTER
       match:
         context: GATEWAY
@@ -37,6 +37,11 @@ spec:
                   "@type": type.googleapis.com/google.protobuf.StringValue
                   value: |
                     {
+                      "vhost": "sessions.mux.local",
+                      "routes": [
+                        "/input",
+                        "/read"
+                      ],
                       "host_rewrite_header": "X-RewriteSessionsHost"
                     }
 
@@ -45,15 +50,24 @@ spec:
         context: GATEWAY
         routeConfiguration:
           vhost:
-            name: "httpbin.mux.local:80"
+            name: "sessions.mux.local:80"
+            route:
+              name: .sessions.input
       patch:
-        operation: INSERT_BEFORE
+        operation: MERGE
         value:
           match:
-            prefix: "/force-host-rewrite"
+            prefix: "/input"
           route:
             prefix_rewrite: "/"
-            cluster: dynamic_forward_proxy_cluster
+            cluster: sessions_dynamic_forward_proxy_cluster
+            retry_policy:
+              retry_on: gateway-error,connect-failure,refused-stream,retriable-status-codes,reset
+              num_retries: 3
+              retry_back_off:
+                base_interval: 400ms
+              retriable_status_codes:
+                - 503
           typed_per_filter_config:
             envoy.filters.http.dynamic_forward_proxy:
               "@type": type.googleapis.com/envoy.extensions.filters.http.dynamic_forward_proxy.v3.PerRouteConfig
@@ -64,19 +78,28 @@ spec:
         context: GATEWAY
         routeConfiguration:
           vhost:
-            name: "httpbin.mux.local:80"
+            name: "sessions.mux.local:80"
+            route:
+              name: .sessions.read
       patch:
-        operation: INSERT_BEFORE
+        operation: MERGE
         value:
           match:
             prefix: "/read"
           route:
             prefix_rewrite: "/"
-            cluster: dynamic_forward_proxy_cluster
+            cluster: sessions_dynamic_forward_proxy_cluster
+            retry_policy:
+              retry_on: gateway-error,connect-failure,refused-stream,retriable-status-codes,reset
+              num_retries: 3
+              retry_back_off:
+                base_interval: 400ms
+              retriable_status_codes:
+                - 503
           typed_per_filter_config:
             envoy.filters.http.dynamic_forward_proxy:
               "@type": type.googleapis.com/envoy.extensions.filters.http.dynamic_forward_proxy.v3.PerRouteConfig
-              host_rewrite_header: X-InternalSessionHost
+              host_rewrite_header: X-RewriteSessionsHost
 
     - applyTo: HTTP_FILTER
       match:
@@ -95,16 +118,10 @@ spec:
           typed_config:
             "@type": type.googleapis.com/envoy.extensions.filters.http.dynamic_forward_proxy.v3.FilterConfig
             dns_cache_config:
-              name: dynamic_forward_proxy_cache_config
+              name: sessions_dynamic_forward_proxy_cache_config
               dns_lookup_family: V4_ONLY
-              dns_resolution_config:
-                resolvers:
-                  - socket_address:
-                      address: "8.8.8.8"
-                      port_value: 53
-                dns_resolver_options:
-                  use_tcp_for_dns_lookups: true
-                  no_default_search_domain: true
+              dns_failure_refresh_rate:
+                base_interval: 5ms
 
     - applyTo: CLUSTER
       match:
@@ -112,27 +129,21 @@ spec:
       patch:
         operation: ADD
         value: # cluster specification
-          name: dynamic_forward_proxy_cluster
+          name: sessions_dynamic_forward_proxy_cluster
           lb_policy: CLUSTER_PROVIDED
           cluster_type:
             name: envoy.clusters.dynamic_forward_proxy
             typed_config:
               "@type": type.googleapis.com/envoy.extensions.clusters.dynamic_forward_proxy.v3.ClusterConfig
               dns_cache_config:
-                name: dynamic_forward_proxy_cache_config
+                name: sessions_dynamic_forward_proxy_cache_config
                 dns_lookup_family: V4_ONLY
-                dns_resolution_config:
-                  resolvers:
-                    - socket_address:
-                        address: "8.8.8.8"
-                        port_value: 53
-                  dns_resolver_options:
-                    use_tcp_for_dns_lookups: true
-                    no_default_search_domain: true
-          transport_socket:
-            name: envoy.transport_sockets.tls
-            typed_config:
-              "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
-              common_tls_context:
-                validation_context:
-                  trusted_ca: { filename: /etc/ssl/certs/ca-certificates.crt }
+                dns_failure_refresh_rate:
+                  base_interval: 5ms
+          # transport_socket:
+          #   name: envoy.transport_sockets.tls
+          #   typed_config:
+          #     "@type": type.googleapis.com/envoy.extensions.transport_sockets.tls.v3.UpstreamTlsContext
+          #     common_tls_context:
+          #       validation_context:
+          #         trusted_ca: { filename: /etc/ssl/certs/ca-certificates.crt }

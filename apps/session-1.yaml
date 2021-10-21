@@ -1,0 +1,58 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: 600b18a9-56bc-421f-9b4a-c99f33121a95
+  labels:
+    app: 600b18a9-56bc-421f-9b4a-c99f33121a95
+    app.kubernetes.io/name: session
+    version: v1
+spec:
+  hostname: 600b18a9-56bc-421f-9b4a-c99f33121a95
+  subdomain: sessions
+  containers:
+    - image: docker.io/kennethreitz/httpbin
+      imagePullPolicy: IfNotPresent
+      name: httpbin
+      ports:
+        - containerPort: 80
+      env:
+        - name: GUNICORN_CMD_ARGS
+          value: "--capture-output --error-logfile - --access-logfile - --access-logformat '%(h)s %(t)s %(r)s %(s)s Host: %({Host}i)s}'"
+
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: 74a5e6d2-e6bc-4164-85a0-59da564fedd1
+  labels:
+    app: 74a5e6d2-e6bc-4164-85a0-59da564fedd1a
+    app.kubernetes.io/name: session
+    version: v1
+spec:
+  hostname: 74a5e6d2-e6bc-4164-85a0-59da564fedd1
+  subdomain: sessions
+  containers:
+    - image: docker.io/kennethreitz/httpbin
+      imagePullPolicy: IfNotPresent
+      name: httpbin
+      ports:
+        - containerPort: 80
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sessions
+  labels:
+    app.kubernetes.io/instance: session-manager
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: session
+spec:
+  type: ClusterIP
+  clusterIP: None
+  selector:
+    app.kubernetes.io/name: session
+  # Given this service is only here to give a DNS record per pod
+  # named [pod-id].sessions.[Values.namespace].svc.cluster.local
+  # It doesn't matter if the record is there before the pod is ready
+  # Setting it to true can let it propagate faster
+  publishNotReadyAddresses: true
